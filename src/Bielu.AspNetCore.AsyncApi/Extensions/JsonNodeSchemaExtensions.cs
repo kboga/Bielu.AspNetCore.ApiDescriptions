@@ -214,14 +214,18 @@ internal static class JsonNodeSchemaExtensions
     {
         var type = context.TypeInfo.Type;
         var underlyingType = Nullable.GetUnderlyingType(type);
-        if (_simpleTypeToAsyncApiJsonSchema.TryGetValue(underlyingType ?? type, out var AsyncApiJsonSchema))
+        if (_simpleTypeToAsyncApiJsonSchema.TryGetValue(underlyingType ?? type, out var asyncApiJsonSchema))
         {
             if (underlyingType != null && MapJsonNodeToSchemaType(schema[AsyncApiJsonSchemaKeywords.TypeKeyword]) is { } schemaTypes &&
                 !schemaTypes.HasFlag(SchemaType.Null))
             {
                 schema[AsyncApiJsonSchemaKeywords.TypeKeyword] = (schemaTypes | SchemaType.Null).ToString();
             }
-            schema[AsyncApiJsonSchemaKeywords.FormatKeyword] = AsyncApiJsonSchema.Format;
+            else
+            {
+                schema[AsyncApiJsonSchemaKeywords.TypeKeyword] = asyncApiJsonSchema.Type.ToString();
+            }
+            schema[AsyncApiJsonSchemaKeywords.FormatKeyword] = asyncApiJsonSchema.Format;
             schema[AsyncApiConstants.Id] = createSchemaReferenceId(context.TypeInfo);
         }
     }
@@ -537,9 +541,9 @@ internal static class JsonNodeSchemaExtensions
     {
         if (jsonNode is not JsonArray jsonArray)
         {
-            if (Enum.TryParse<SchemaType>(jsonNode?.GetValue<string>(), true, out var AsyncApiSchemaType))
+            if (Enum.TryParse<SchemaType>(jsonNode?.GetValue<string>(), true, out var asyncApiSchemaType))
             {
-                return AsyncApiSchemaType;
+                return asyncApiSchemaType;
             }
 
             return jsonNode is JsonValue jsonValue && jsonValue.TryGetValue<string>(out var identifier)
