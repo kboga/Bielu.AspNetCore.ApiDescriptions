@@ -13,9 +13,15 @@ using Xunit;
 namespace Bielu.AspNetCore.AsyncApi.Tests.Integration;
 
 /// <summary>
-/// Regression tests for a bug where <c>NormalizeSchemaTypes</c> (in AsyncApiJsonSchemaService)
-/// collapsed a nullable property's exported "type": ["string", "null"] down to a single
-/// non-null type, silently dropping nullability from the generated schema.
+/// Regression tests for bugs where nullability was silently dropped from generated schemas:
+/// <c>NormalizeSchemaTypes</c> (in AsyncApiJsonSchemaService) used to collapse a nullable
+/// property's exported "type": ["string", "null"] down to a single non-null type, and
+/// <c>PruneNullTypeForComponentizedTypes</c> used to strip "null" from any nullable property
+/// whose value type would be componentized (i.e. any named complex/object type), on the
+/// assumption that a since-removed oneOf-wrapping step would restore it at the reference site.
+/// That restoration step never worked (it referenced a nonexistent <c>Metadata</c> property and
+/// the wrong constants class), so nested nullable object properties permanently lost their
+/// nullability.
 /// </summary>
 public class NullablePropertySchemaTests
 {
@@ -69,6 +75,15 @@ public class NullablePropertySchemaTests
             : [nullableTextType.GetString()];
         nullableTextTypes.ShouldContain("string");
         nullableTextTypes.ShouldContain("null");
+
+        // Nullable nested complex/object property should keep both "object" and "null" in its
+        // type, even though it will be assigned a schema reference id (x-schema-id) as a named type.
+        var nullableComplexType = properties.GetProperty("nullableComplex").GetProperty("type");
+        var nullableComplexTypes = nullableComplexType.ValueKind == JsonValueKind.Array
+            ? nullableComplexType.EnumerateArray().Select(t => t.GetString()).ToArray()
+            : [nullableComplexType.GetString()];
+        nullableComplexTypes.ShouldContain("object");
+        nullableComplexTypes.ShouldContain("null");
     }
 }
 
@@ -85,4 +100,11 @@ public class NullablePropertyTestMessage
     public string RequiredText { get; set; } = string.Empty;
 
     public string? NullableText { get; set; }
+
+    public NullablePropertyTestComplex? NullableComplex { get; set; }
+}
+
+public class NullablePropertyTestComplex
+{
+    public string Name { get; set; } = string.Empty;
 }
