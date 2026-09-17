@@ -1,0 +1,2 @@
+Bielu.AspNetCore.AsyncApi.Attributes.Attributes.IAsyncApiMessageHeaderExampleProvider
+Bielu.AspNetCore.AsyncApi.Attributes.Attributes.IAsyncApiMessageHeaderExampleProvider.GetHeaderExample() -> object!
